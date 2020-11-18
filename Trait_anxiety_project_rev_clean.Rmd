@@ -1,0 +1,964 @@
+---
+title: "Trait_anxiety_project"
+output: html_document
+---
+
+Clear environment (if needed)
+```{r}
+rm(list = ls())
+```
+
+## Load necessary packages
+```{r}
+library(esc)
+library(plyr)
+library(lme4)
+library(effsize)
+library(ggplot2)
+library(emmeans)
+library(pbkrtest)
+library(RColorBrewer)
+library(ggeffects)
+library(gridExtra)
+library(ggExtra)
+```
+
+
+## Set working directory
+```{r}
+setwd("C:/Users/Caroline/Box/Post-doc Projects/Anxiety_project") #this needs to be replaced with your own directory where the .csv data file is saved
+```
+
+## Load data
+```{r}
+df_all <- read.csv("Anxiety_all_data_revision.csv")
+df <- df_all[!(df_all$Preliminary_data==1), ]
+df_cl <- df[complete.cases(df[ , 4:5]), ] #version of the data excluding missing gender and age data
+df2 <- df[!(df$Site=="Site2" | df$Site=="Site4"), ] #excluding study site with data from only 1 condition
+df2_cl <- df2[complete.cases(df2[ , 4:5]), ]
+```
+
+## Perform some descriptive statistics
+Counts
+```{r}
+count(df, c("Gender","Context"))
+count(df, c("Screening","Context"))
+count(df, c("Stressor","Context"))
+count(df, c("Drug","Context"))
+count(df, c("Anxiety_research","Context"))
+count(df, c("Sample_type","Context"))
+count(df, c("Post_exclusion","Context"))
+count(df, c("Site","Context"))
+count(df, c("Site","Context","Gender"))
+```
+
+Chi-square tests on proportions
+```{r}
+csGend <- chisq.test(df$Context, df$Gender, correct=FALSE)
+csPsyc <- chisq.test(df$Context, df$Screening, correct=FALSE)
+csStre <- chisq.test(df$Context, df$Stressor, correct=FALSE)
+csDrug <- chisq.test(df$Context, df$Drug, correct=FALSE)
+csSamp <- chisq.test(df$Context, df$Sample_type, correct=FALSE)
+csAnxR <- chisq.test(df$Context, df$Anxiety_research, correct=FALSE)
+csExcl <- chisq.test(df$Context, df$Post_exclusion, correct=FALSE)
+
+csGend
+csPsyc
+csStre
+csDrug
+csSamp
+csAnxR
+csExcl
+```
+
+Effect size calculations from chi-square tests
+```{r}
+esc_chisq(chisq = csGend$statistic, totaln = 3317, es.type = "d")
+esc_chisq(chisq = csPsyc$statistic, totaln = 3317, es.type = "d")
+esc_chisq(chisq = csStre$statistic, totaln = 3317, es.type = "d")
+esc_chisq(chisq = csDrug$statistic, totaln = 3317, es.type = "d")
+esc_chisq(chisq = csSamp$statistic, totaln = 3317, es.type = "d")
+esc_chisq(chisq = csAnxR$statistic, totaln = 3317, es.type = "d")
+esc_chisq(chisq = csExcl$statistic, totaln = 3317, es.type = "d")
+```
+
+Mean and SD trait anxiety by context and site
+```{r}
+aggregate(Trait.anxiety ~ Context + Site, data = df, mean)
+aggregate(Trait.anxiety ~ Context + Site, data = df, sd)
+```
+
+Mean and SD trait anxiety by site
+```{r}
+aggregate(Trait.anxiety ~ Site, data = df, mean)
+aggregate(Trait.anxiety ~ Site, data = df, sd)
+```
+
+Save trait anxiety by group in mu variable
+```{r}
+mu <- ddply(df, "Context", summarise, grp.mean=mean(Trait.anxiety))
+head(mu)
+ddply(df, "Context", summarise, grp.sd=sd(Trait.anxiety))
+```
+
+Age, study duration and pay rate by study context
+```{r}
+ddply(df_cl, "Context", summarise, grp.mean=mean(Age))
+ddply(df_cl, "Context", summarise, grp.sd=sd(Age))
+ddply(df, "Context", summarise, grp.mean=mean(Study_duration))
+ddply(df, "Context", summarise, grp.sd=sd(Study_duration))
+ddply(df, "Context", summarise, grp.mean=mean(Pay_rate))
+ddply(df, "Context", summarise, grp.sd=sd(Pay_rate))
+```
+
+## T-tests (assuming unequal variance) and effect size of the various binary factors on trait anxiety
+Effect of study context on trait anxiety
+```{r}
+t.test(df$Trait.anxiety ~ df$Context, var.equal = FALSE)
+cohen.d(df$Trait.anxiety, df$Context, pooled=TRUE, paired=FALSE)
+```
+
+Effect of context on trait anxiety per site
+```{r}
+t.test(df[df$Site=="Site1", ]$Trait.anxiety ~ df[df$Site=="Site1", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site1", ]$Trait.anxiety, df[df$Site=="Site1", ]$Context, pooled=TRUE, paired=FALSE)
+
+t.test(df[df$Site=="Site3", ]$Trait.anxiety ~ df[df$Site=="Site3", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site3", ]$Trait.anxiety, df[df$Site=="Site3", ]$Context, pooled=TRUE, paired=FALSE)
+
+t.test(df[df$Site=="Site5", ]$Trait.anxiety ~ df[df$Site=="Site5", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site5", ]$Trait.anxiety, df[df$Site=="Site5", ]$Context, pooled=TRUE, paired=FALSE)
+
+t.test(df[df$Site=="Site6", ]$Trait.anxiety ~ df[df$Site=="Site6", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site6", ]$Trait.anxiety, df[df$Site=="Site6", ]$Context, pooled=TRUE, paired=FALSE)
+
+t.test(df[df$Site=="Site7", ]$Trait.anxiety ~ df[df$Site=="Site7", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site7", ]$Trait.anxiety, df[df$Site=="Site7", ]$Context, pooled=TRUE, paired=FALSE)
+
+t.test(df[df$Site=="Site8", ]$Trait.anxiety ~ df[df$Site=="Site8", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site8", ]$Trait.anxiety, df[df$Site=="Site8", ]$Context, pooled=TRUE, paired=FALSE)
+
+t.test(df[df$Site=="Site9", ]$Trait.anxiety ~ df[df$Site=="Site9", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Site=="Site9", ]$Trait.anxiety, df[df$Site=="Site9", ]$Context, pooled=TRUE, paired=FALSE)
+```
+
+Effect of gender on trait anxiety
+```{r}
+t.test(df$Trait.anxiety ~ df$Gender, var.equal = FALSE)
+cohen.d(df$Trait.anxiety, df$Gender, pooled=TRUE, paired=FALSE)
+```
+
+Effect of screening on trait anxiety
+```{r}
+t.test(df$Trait.anxiety ~ df$Screening, var.equal = FALSE)
+cohen.d(df$Trait.anxiety, df$Screening, pooled=TRUE, paired=FALSE)
+```
+Effect of anxiety research on trait anxiety
+```{r}
+t.test(df$Trait.anxiety ~ df$Anxiety_research, var.equal = FALSE)
+cohen.d(df$Trait.anxiety, df$Anxiety_research, pooled=TRUE, paired=FALSE)
+```
+
+Effect of post exclusion on trait anxiety
+```{r}
+t.test(df$Trait.anxiety ~ df$Post_exclusion, var.equal = FALSE)
+cohen.d(df$Trait.anxiety, df$Post_exclusion, pooled=TRUE, paired=FALSE)
+```
+
+## T-tests (assuming unequal variance) and effect size of study context on the various continuous variables
+Effect of context on age
+```{r}
+t.test(df_cl$Age ~ df_cl$Context, var.equal = FALSE)
+cohen.d(df_cl$Age, df_cl$Context, pooled=TRUE, paired=FALSE)
+```
+
+Effect of context on study duration
+```{r}
+t.test(df$Study_duration ~ df$Context, var.equal = FALSE)
+cohen.d(df$Study_duration, df$Context, pooled=TRUE, paired=FALSE)
+```
+
+Effect of context on pay rate
+```{r}
+t.test(df$Pay_rate ~ df$Context, var.equal = FALSE)
+cohen.d(df$Pay_rate, df$Context, pooled=TRUE, paired=FALSE)
+```
+
+## Plot of trait anxiety distribution
+Function to estimate mode
+```{r}
+estimate_mode <- function(x) {
+  d <- density(x)
+  d$x[which.max(d$y)]
+}
+```
+
+Mean, SD, Mode of trait anxiety across the whole sample
+```{r}
+cat("Mean trait anxiety: ", mean(df$Trait.anxiety))
+cat("\nSD trait anxiety: ", sd(df$Trait.anxiety))
+cat("\nMode trait anxiety: ", estimate_mode(df$Trait.anxiety))
+cat("\n80th percentile: ", quantile(df$Trait.anxiety, probs = 0.80))
+```
+
+Plot trait anxiety distribution with mode & 80th percentile
+```{r, fig.height = 3, fig.width = 4.9}
+ggplot(df, aes(x=Trait.anxiety)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.8, binwidth = 1, color="black", fill="grey80") +
+  geom_density(alpha=0.2) +
+  geom_vline(data=df, aes(xintercept=estimate_mode(Trait.anxiety)), linetype="solid", size=1.2) +
+  geom_vline(data=df, aes(xintercept=quantile(Trait.anxiety, probs = 0.80)), linetype="dashed", size=1.2) +
+  labs(x="Trait anxiety", y = "Density") +
+  theme_classic()
+```
+
+Estimate mode & 80th percentile per study context
+```{r}
+mu_mode <- ddply(df, "Context", summarise, grp.mode=estimate_mode(Trait.anxiety))
+mu_qtile <- ddply(df, "Context", summarise, grp.qtile=quantile(Trait.anxiety, probs = 0.80))
+```
+
+Plot trait anxiety distribution with mode & 80th percentile per study context
+```{r, fig.height = 3, fig.width = 6}
+ggplot(df, aes(x=Trait.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.4, binwidth = 1) +
+  geom_density(alpha=0.2) +
+  geom_vline(data=mu_mode, aes(xintercept=grp.mode, color=Context), linetype="solid", size=1.2) +
+  geom_vline(data=mu_qtile, aes(xintercept=grp.qtile, color=Context), linetype="dashed", size=1.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  labs(x="Trait anxiety", y="Density", color="Study context", fill="Study context") +
+  theme_classic()
+```
+
+## Mixed effect models to examine main effects of the various variables on trait anxiety
+Set control parameters to use in all models
+```{r}
+control_params = lmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000))
+```
+
+Full model, including all the variables as fixed effect + a random intercept per site
+```{r}
+full_fe2 <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+re_full2 <- ranef(full_fe2)$Site #extract random effects
+summary(full_fe2)
+```
+
+Full models without one of the fixed effects to test significance of each, as well as estimating marginal means and effect size (for categorical variables only)
+Effect of study context
+```{r}
+fe2_cond <- lmer(Trait.anxiety ~ Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_cond, full_fe2)
+EM2_cond <- emmeans(full_fe2, c("Context"), pbkrtest.limit = 3214) #marginal means
+es2_cond <- eff_size(EM2_cond, sigma = sigma(full_fe2), edf = 3214) #effect size
+summary(es2_cond)
+```
+
+Effect of gender
+```{r}
+fe2_gend <- lmer(Trait.anxiety ~ Context + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_gend, full_fe2)
+EM2_gend <- emmeans(full_fe2, c("Gender"), pbkrtest.limit = 3214)
+es2_gend <- eff_size(EM2_gend, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_gend)
+```
+
+Effect of screening
+```{r}
+fe2_psyc <- lmer(Trait.anxiety ~ Context + Gender + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_psyc, full_fe2)
+EM2_scre <- emmeans(full_fe2, c("Screening"), pbkrtest.limit = 3214)
+es2_psyc <- eff_size(EM2_scre, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_psyc)
+```
+
+Effect of stressor
+```{r}
+fe2_stre <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_stre, full_fe2)
+EM2_stre <- emmeans(full_fe2, c("Stressor"), pbkrtest.limit = 3214)
+es2_stre <- eff_size(EM2_stre, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_stre)
+```
+
+Effect of drug administration
+```{r}
+fe2_drug <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_drug, full_fe2)
+EM2_drug <- emmeans(full_fe2, c("Drug"), pbkrtest.limit = 3214)
+es2_drug <- eff_size(EM2_drug, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_drug)
+```
+
+Effect of age
+```{r}
+fe2_age <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_age, full_fe2)
+```
+
+Effect of sample type
+```{r}
+fe2_samp <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_samp, full_fe2)
+EM2_samp <- emmeans(full_fe2, c("Sample_type"), pbkrtest.limit = 3214)
+es2_samp <- eff_size(EM2_samp, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_samp)
+```
+
+Effect of study duration
+```{r}
+fe2_dur <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_dur, full_fe2)
+```
+
+Effect of pay rate
+```{r}
+fe2_pay <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_pay, full_fe2)
+```
+
+Effect of study being part of anxiety research
+```{r}
+fe2_anxR <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_anxR, full_fe2)
+EM2_anxr <- emmeans(full_fe2, c("Anxiety_research"), pbkrtest.limit = 3214)
+es2_anxr <- eff_size(EM2_anxr, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_anxr)
+```
+
+Effect of excluding participants before inclusion in dataset
+```{r}
+fe2_excl <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + factor(Sample_type) + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(fe2_excl, full_fe2)
+EM2_excl <- emmeans(full_fe2, c("Post_exclusion"), pbkrtest.limit = 3214)
+es2_excl <- eff_size(EM2_excl, sigma = sigma(full_fe2), edf = 3214)
+summary(es2_excl)
+```
+
+
+Save marginal means into variables for plotting
+```{r}
+TA_EM_cond <- summary(EM2_cond)$emmean
+TA_EM_scre <- summary(EM2_scre)$emmean
+TA_EM_stre <- summary(EM2_stre)$emmean
+TA_EM_drug <- summary(EM2_drug)$emmean
+TA_EM_gend <- summary(EM2_gend)$emmean
+TA_EM_samp <- summary(EM2_samp)$emmean
+TA_EM_anxr <- summary(EM2_anxr)$emmean
+TA_EM_excl <- summary(EM2_excl)$emmean
+```
+
+
+Plot results of main effects
+```{r}
+colsdark2 <- brewer.pal(n = 8, name = "Dark2")
+
+emms <- data.frame("Context" = c("behaviour","fMRI"), "Trait.anxiety" = TA_EM_cond)
+pcond <- ggplot(df_cl, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = colsdark2[1:2]) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Study context", y="Trait anxiety") + guides(fill=FALSE)
+
+emms <- data.frame("Screening" = c(0,1), "Trait.anxiety" = TA_EM_scre)
+pscre <- ggplot(df_cl, aes(x=factor(Screening), y=Trait.anxiety, fill=factor(Screening))) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Screening", y="Trait anxiety") + guides(fill=FALSE) +
+  scale_x_discrete(labels=c("0" = "No", "1" = "Yes"))
+
+emms <- data.frame("Stressor" = c(0,1), "Trait.anxiety" = TA_EM_stre)
+pstre <- ggplot(df_cl, aes(x=factor(Stressor), y=Trait.anxiety, fill=factor(Stressor))) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Stressor", y="Trait anxiety") + guides(fill=FALSE) +
+  scale_x_discrete(labels=c("0" = "No", "1" = "Yes"))
+
+emms <- data.frame("Drug" = c(0,1), "Trait.anxiety" = TA_EM_drug)
+pdrug <- ggplot(df_cl, aes(x=factor(Drug), y=Trait.anxiety, fill=factor(Drug))) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Drug", y="Trait anxiety") + guides(fill=FALSE) +
+  scale_x_discrete(labels=c("0" = "No", "1" = "Yes"))
+
+emms <- data.frame("Gender" = c("F","M"), "Trait.anxiety" = TA_EM_gend)
+pgend <- ggplot(df_cl, aes(x=Gender, y=Trait.anxiety, fill=Gender)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(y="Trait anxiety") + guides(fill=FALSE)
+
+emms <- data.frame("Sample_type" = c("both","community","convenience"), "Trait.anxiety" = TA_EM_samp)
+psamp <- ggplot(df_cl, aes(x=Sample_type, y=Trait.anxiety, fill=Sample_type)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey50","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Sample type", y="Trait anxiety") + guides(fill=FALSE)
+
+emms <- data.frame("Anxiety_research" = c(0,1), "Trait.anxiety" = TA_EM_anxr)
+panxr <- ggplot(df_cl, aes(x=factor(Anxiety_research), y=Trait.anxiety, fill=factor(Anxiety_research))) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = colsdark2[3:4]) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Anxiety research", y="Trait anxiety") + guides(fill=FALSE) +
+  scale_x_discrete(labels=c("0" = "No", "1" = "Yes"))
+
+emms <- data.frame("Post_exclusion" = c(0,1), "Trait.anxiety" = TA_EM_excl)
+pexcl <- ggplot(df_cl, aes(x=factor(Post_exclusion), y=Trait.anxiety, fill=factor(Post_exclusion))) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Exclusion", y="Trait anxiety") + guides(fill=FALSE) +
+  scale_x_discrete(labels=c("0" = "No", "1" = "Yes"))
+
+test <- ggpredict(full_fe2, terms = "Age")
+p_age <- ggplot() + geom_point(data=df_cl, aes(x=Age, y=Trait.anxiety), shape=16, alpha=0.2, color="indianred") + 
+    geom_line(data=test, aes(x, predicted), color="darkblue", size=1.2) +
+    geom_ribbon(data=test, aes(x, ymin=conf.low, ymax=conf.high), fill="darkblue", alpha=0.2) +
+    geom_text(aes(x=60, y=60, label=paste("beta==", round(coef(summary(full_fe2))["Age", "Estimate"], digits=3))),
+              size=3, color="darkblue", parse = TRUE) +
+    theme_classic() + labs(y="Trait anxiety")
+
+test <- ggpredict(full_fe2, terms = "Study_duration")
+dft1 <- df_cl[df_cl$Study_duration<500, ] 
+p_dur <- ggplot() + geom_point(data=dft1, aes(x=Study_duration, y=Trait.anxiety), shape=16, alpha=0.2, color="darkgray") + 
+    geom_line(data=test, aes(x, predicted), color="black", size=1.2) +
+    geom_ribbon(data=test, aes(x, ymin=conf.low, ymax=conf.high), fill="black", alpha=0.2) +
+    geom_text(aes(x=250, y=70, label=paste("beta==", round(coef(summary(full_fe2))["Study_duration", "Estimate"], digits=3))),
+              size=3, color="black", parse = TRUE) + xlim(30,400) +
+    theme_classic() + labs(x= "Study duration (min)", y="Trait anxiety")
+
+test <- ggpredict(full_fe2, terms = "Pay_rate")
+dft2 <- df_cl[(df_cl$Pay_rate<50 & df_cl$Pay_rate>0), ] 
+p_pay <- ggplot() + geom_point(data=dft2, aes(x=Pay_rate, y=Trait.anxiety), shape=16, alpha=0.2, color="darkgray") + 
+    geom_line(data=test, aes(x, predicted), color="black", size=1.2) +
+    geom_ribbon(data=test, aes(x, ymin=conf.low, ymax=conf.high), fill="black", alpha=0.2) +
+    geom_text(aes(x=30, y=70, label=paste("beta==", round(coef(summary(full_fe2))["Pay_rate", "Estimate"], digits=3))),
+              size=3, color="black", parse = TRUE) + xlim(5,40) +
+    theme_classic() + labs(x= "Pay (USD per hour)", y="Trait anxiety")
+
+```
+
+display first set of plots
+```{r, fig.height = 4, fig.width = 8}
+grid.arrange(pcond, p_age, panxr, pgend, pstre, pdrug, pscre, pexcl, nrow=2)
+```
+
+display second set of plots
+```{r, fig.height = 2, fig.width = 8}
+grid.arrange(psamp, p_dur, p_pay, nrow=1, widths=c(1.5,1.2,1.2))
+```
+
+Test that the effect of age on trait anxiety is not driven exclusively by "older" subjects
+```{r, fig.height = 3, fig.width = 3}
+df_y <- df_cl[df_cl$Age<=50, ] #excluding subjects older than 35
+cor.test(df_y$Age, df_y$Trait.anxiety, method="pearson")
+ggplot(df_y, aes(x=Age, y=Trait.anxiety)) + geom_point(shape=16, alpha=0.2) +  
+  geom_smooth(method=lm, colour="red", fill="red") + theme_classic()
+```
+
+```{r, fig.height = 3, fig.width = 3}
+df_y <- df_cl[df_cl$Age<=35, ] #excluding subjects older than 35
+cor.test(df_y$Age, df_y$Trait.anxiety, method="pearson")
+ggplot(df_y, aes(x=Age, y=Trait.anxiety)) + geom_point(shape=16, alpha=0.2) +  
+  geom_smooth(method=lm, colour="red", fill="red") + theme_classic()
+```
+
+## Mixed effect models with interactions
+Full model
+```{r}
+full_int2 <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+re_int2 <- ranef(full_int2)$Site #extract random effects
+summary(full_int2)
+```
+
+Full interaction model without the random effect of context per site
+```{r}
+int_nore <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (1 | Site), data = df2, REML=FALSE, control = control_params)
+
+#look at significance of the random effect
+anova(full_int2, int_nore)
+```
+
+Full interaction models without one of the interactions, as well as marginal means and effect sizes (for categorical variables only)
+Context*Gender interaction
+```{r}
+int_cgend <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cgend)
+emm_cond_gend <- emmeans(full_int2, c("Context","Gender"), pbkrtest.limit = 3041)
+es_cond_gend <- eff_size(emm_cond_gend, sigma = sigma(full_int2), edf = 3041)
+summary(es_cond_gend)
+```
+
+Context*Screening interaction
+```{r}
+int_cpsyc <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cpsyc)
+emm_cond_psyc <- emmeans(full_int2, c("Context","Screening"), pbkrtest.limit = 3041)
+es_cond_psyc <- eff_size(emm_cond_psyc, sigma = sigma(full_int2), edf = 3041)
+summary(es_cond_psyc)
+```
+
+Context*Stressor interaction
+```{r}
+int_cstre <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening)
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cstre)
+emm_cond_stre <- emmeans(full_int2, c("Context","Stressor"), pbkrtest.limit = 3041)
+es_cond_stre <- eff_size(emm_cond_stre, sigma = sigma(full_int2), edf = 3041)
+summary(es_cond_stre)
+```
+
+Context*Drug interaction
+```{r}
+int_cdrug <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cdrug)
+emm_cond_drug <- emmeans(full_int2, c("Context","Drug"), pbkrtest.limit = 3041)
+es_cond_drug <- eff_size(emm_cond_drug, sigma = sigma(full_int2), edf = 3041)
+summary(es_cond_drug)
+```
+
+Context*Age interaction
+```{r}
+int_cage <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cage)
+```
+
+Context*Sample type interaction
+```{r}
+int_csamp <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_csamp)
+emm_cond_samp <- emmeans(full_int2, c("Context","Sample_type"), pbkrtest.limit = 3041)
+es_cond_samp <- eff_size(emm_cond_samp, sigma = sigma(full_int2), edf = 3041)
+summary(es_cond_samp)
+```
+
+Context*Study duration interaction
+```{r}
+int_cdur <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cdur)
+```
+
+Context*Pay rate interaction
+```{r}
+int_cpay <- lmer(Trait.anxiety ~ Context + Gender + factor(Screening) + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Screening) + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + (Context | Site), data = df2, REML=FALSE, control = control_params)
+anova(full_int2, int_cpay)
+```
+
+## Plot relevant interaction effects
+Trait anxiety by group & Screening
+```{r, fig.height = 3, fig.width = 4}
+TA_EM_psyc <- summary(emm_cond_psyc)$emmean
+emms <- data.frame("Context" = c("behaviour","fMRI","behaviour","fMRI"), "Screening" = c(0,0,1,1), "Trait.anxiety" = TA_EM_psyc)
+ggplot(df2, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_brewer(palette="Dark2") +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + facet_wrap(~ Screening, nrow=1, labeller = as_labeller(c("0"="No Screening", "1"="Screening"))) + 
+  labs(x="Study context", y="Trait anxiety", fill="Study context")
+```
+
+Trait anxiety by group & Drug
+```{r, fig.height = 3, fig.width = 4}
+TA_EM_drug <- summary(emm_cond_drug)$emmean
+emms <- data.frame("Context" = c("behaviour","fMRI","behaviour","fMRI"), "Drug" = c(0,0,1,1), "Trait.anxiety" = TA_EM_drug)
+ggplot(df2, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_brewer(palette="Dark2") +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + facet_wrap(~ Drug, nrow=1, labeller = as_labeller(c("0"="No Drug", "1"="Drug"))) + 
+  labs(x="Study context", y="Trait anxiety", fill="Study context")
+```
+
+Trait anxiety by group & Sample type
+```{r, fig.height = 3, fig.width = 5}
+TA_EM_samp <- summary(emm_cond_samp)$emmean
+emms <- data.frame("Context" = c("behaviour","fMRI","behaviour","fMRI","behaviour","fMRI"), 
+                   "Sample_type" = c("both","both","community","community","convenience","convenience"), "Trait.anxiety" = TA_EM_samp)
+ggplot(df2, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_brewer(palette="Dark2") +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + facet_wrap(~ Sample_type, nrow=1) + 
+  labs(x="Study context", y="Trait anxiety", fill="Study context")
+```
+
+Trait anxiety by group & Stressor
+```{r, fig.height = 3, fig.width = 4}
+TA_EM_stre <- summary(emm_cond_stre)$emmean
+emms <- data.frame("Context" = c("behaviour","fMRI","behaviour","fMRI"), "Stressor" = c(0,0,1,1), "Trait.anxiety" = TA_EM_stre)
+ggplot(df2, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + facet_wrap(~ Stressor, nrow=1, labeller = as_labeller(c("0"="No Stressor", "1"="Stressor"))) + 
+  labs(x="Study context", y="Trait anxiety", fill="Study context")
+```
+
+Trait anxiety by group & Gender
+```{r, fig.height = 3, fig.width = 4}
+TA_EM_gend <- summary(emm_cond_gend)$emmean
+emms <- data.frame("Context" = c("behaviour","fMRI","behaviour","fMRI"), "Gender" = c("F","F","M","M"), "Trait.anxiety" = TA_EM_gend)
+ggplot(df2_cl, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = c("grey20","grey80")) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + facet_wrap(~ Gender, nrow=1, labeller = as_labeller(c("F"="Female", "M"="Male"))) + 
+  labs(x="Study context", y="Trait anxiety", fill="Study context")
+```
+
+
+## Follow up analyses with screening type
+Descriptive stats
+```{r}
+count(df, c("Context","Screening_type"))
+chisq.test(df$Context, df$Screening_type, correct=FALSE)
+aggregate(Trait.anxiety ~ Context + Screening_type, data = df, mean)
+aggregate(Trait.anxiety ~ Context + Screening_type, data = df, sd)
+```
+
+T-tests and effect sizes, looking at effect of study context for each screening type
+```{r}
+t.test(df[df$Screening_type == "none", ]$Trait.anxiety ~ df[df$Screening_type == "none", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Screening_type == "none", ]$Trait.anxiety ~ df[df$Screening_type == "none", ]$Context, pooled=TRUE, paired=FALSE)
+t.test(df[df$Screening_type == "phone", ]$Trait.anxiety ~ df[df$Screening_type == "phone", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Screening_type == "phone", ]$Trait.anxiety ~ df[df$Screening_type == "phone", ]$Context, pooled=TRUE, paired=FALSE)
+t.test(df[df$Screening_type == "full", ]$Trait.anxiety ~ df[df$Screening_type == "full", ]$Context, var.equal = FALSE)
+cohen.d(df[df$Screening_type == "full", ]$Trait.anxiety ~ df[df$Screening_type == "full", ]$Context, pooled=TRUE, paired=FALSE)
+```
+
+Mixed effect model to examine main effects only, replacing binary screening factor with the 3 screening types
+```{r}
+full_fes <- lmer(Trait.anxiety ~ Context + Gender + Screening_type + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+summary(full_fes)
+```
+
+Same model excluding effect of study context to assess significance of that effect, as well as marginal means and effect size
+```{r}
+full_nocon2 <- lmer(Trait.anxiety ~ Gender + Screening_type + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(full_fes,full_nocon2)
+EM_cond2 <- emmeans(full_fes, c("Context"), pbkrtest.limit = 3214)
+es_cond2 <- eff_size(EM_cond2, sigma = sigma(full_fe2), edf = 3214)
+summary(EM_cond2)
+summary(es_cond2)
+```
+
+
+Same model excluding effect of screening type to assess significance of that effect, as well as marginal means and effect size
+```{r}
+full_noscre2 <- lmer(Trait.anxiety ~ Context + Gender + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + (1 | Site), data = df_cl, REML=FALSE, control = control_params)
+anova(full_fes,full_noscre2)
+EM_scre2 <- emmeans(full_fes, c("Screening_type"), pbkrtest.limit = 3214)
+es_scre2 <- eff_size(EM_scre2, sigma = sigma(full_fe2), edf = 3214)
+summary(EM_scre2)
+summary(es_scre2)
+```
+
+
+Mixed effect model with interaction
+Assess Context*Screening type interaction specifically
+```{r}
+#full model with interaction
+full_int2 <- lmer(Trait.anxiety ~ Context + Gender + Screening_type + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:Screening_type + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+
+#full interaction model without the interaction with screening
+int_cpsyc2 <- lmer(Trait.anxiety ~ Context + Gender + Screening_type + factor(Stressor) + factor(Drug) 
+                 + Age + Sample_type + Study_duration + Pay_rate + factor(Anxiety_research)
+                 + factor(Post_exclusion) + Context:Gender + Context:factor(Stressor) 
+                 + Context:factor(Drug) + Context:Age + Context:Sample_type + Context:Study_duration
+                 + Context:Pay_rate + (Context | Site), data = df2, REML=FALSE, control = control_params)
+
+anova(full_int2, int_cpsyc2)
+```
+
+Marginal means and effect sizes of Context*Screening type interaction
+```{r}
+emm_cond_psyc2 <- emmeans(full_int2, c("Context","Screening_type"), pbkrtest.limit = 3041)
+es_cond_psyc2 <- eff_size(emm_cond_psyc2, sigma = sigma(full_int2), edf = 3041)
+summary(es_cond_psyc2)
+```
+
+
+Descriptive stats split per site
+```{r}
+count(df, c("Context","Screening_type","Site"))
+aggregate(Trait.anxiety ~ Context + Screening_type + Site, data = df, mean)
+aggregate(Trait.anxiety ~ Context + Screening_type + Site, data = df, sd)
+```
+
+
+Plot histograms of trait anxiety per study context and per screening type
+```{r, fig.height = 6, fig.width = 8}
+# New facet label names
+df$facet = factor(df$Screening_type, levels = c("none","phone","full"))
+st.labs <- c("No screening", "Phone screening", "Full screening")
+names(st.labs) <- c("none", "phone", "full")
+
+muu_mode <- ddply(df, c("facet"), summarise, grp.mode=estimate_mode(Trait.anxiety))
+muu_qtile <- ddply(df, c("facet"), summarise, grp.qtile=quantile(Trait.anxiety, probs = 0.80))
+p1 <- ggplot(df, aes(x=Trait.anxiety)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.8, binwidth=2, color="black", fill="grey80") +
+  geom_density(alpha=0.2) +
+  geom_vline(data=muu_mode, aes(xintercept=grp.mode), linetype="solid", size=1.2) +
+  geom_vline(data=muu_qtile, aes(xintercept=grp.qtile), linetype="dashed", size=1.2) +
+  theme_classic() + facet_wrap(~ facet, ncol=1, labeller = labeller(facet = st.labs)) + 
+  labs(x="Trait anxiety", y="Density")
+
+muu_mode <- ddply(df, c("Context","facet"), summarise, grp.mode=estimate_mode(Trait.anxiety))
+muu_qtile <- ddply(df, c("Context","facet"), summarise, grp.qtile=quantile(Trait.anxiety, probs = 0.80))
+p2 <- ggplot(df, aes(x=Trait.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.3, binwidth = 2) +
+  geom_density(alpha=0.2) +
+  geom_vline(data=muu_mode, aes(xintercept=grp.mode, color=Context), linetype="solid", size=1.2) +
+  geom_vline(data=muu_qtile, aes(xintercept=grp.qtile, color=Context), linetype="dashed", size=1.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  theme_classic() + facet_wrap(~ facet, ncol=1, labeller = labeller(facet = st.labs)) + 
+  labs(x="Trait anxiety", y="Density", color="Study context", fill="Study context")
+
+grid.arrange(p1, p2, nrow=1, widths=c(3,4))
+```
+
+Plot histograms of trait anxiety per study context, screening type, and site
+```{r, fig.height = 5, fig.width = 12}
+df2$facet = factor(df2$Screening_type, levels = c("none","phone","full"))
+st.labs <- c("No screening", "Phone screening", "Full screening")
+names(st.labs) <- c("none", "phone", "full")
+
+muu_mode <- ddply(df2, c("Context","facet","Site"), summarise, grp.mode=estimate_mode(Trait.anxiety))
+muu_qtile <- ddply(df2, c("Context","facet","Site"), summarise, grp.qtile=quantile(Trait.anxiety, probs = 0.80))
+ggplot(df2, aes(x=Trait.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.3, binwidth = 2) +
+  geom_density(alpha=0.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  theme_classic() + facet_grid(facet ~ Site) + labs(x="Trait anxiety")
+```
+
+
+## Follow up analyses - trait vs state anxiety
+
+Build data frame to include only subjects with both state and trait anxiety scores and sites with both study contexts
+```{r}
+df_sa <- df_all[complete.cases(df_all$State.anxiety), ] #include subjects who have both trait and state anxiety data
+df_sa2 <- df_sa[!(df_sa$Site=="Site4" | df_sa$Site=="Site7" | df_sa$Site=="Site8" | df_sa$Site=="Site10"), ] #excluding study sites with data from only 1 context
+```
+
+Extract numbers in this new dataframe
+```{r}
+count(df_sa2, c("Context"))
+count(df_sa2, c("Site","Context"))
+count(df_sa2, c("Site"))
+```
+
+Correlation between trait and state anxiety
+```{r}
+cor(df_sa2$Trait.anxiety, df_sa2$State.anxiety, method=c("pearson"))
+```
+
+Trait anxiety mean and sd per context
+```{r}
+aggregate(Trait.anxiety ~ Context, data = df_sa2, mean)
+aggregate(Trait.anxiety ~ Context, data = df_sa2, sd)
+```
+
+Effect of context on trait anxiety
+```{r}
+t.test(df_sa2$Trait.anxiety ~ df_sa2$Context, var.equal = FALSE)
+cohen.d(df_sa2$Trait.anxiety, df_sa2$Context, pooled=TRUE, paired=FALSE)
+```
+
+State anxiety mean and sd per context
+```{r}
+aggregate(State.anxiety ~ Context, data = df_sa2, mean)
+aggregate(State.anxiety ~ Context, data = df_sa2, sd)
+```
+
+Effect of context on state anxiety
+```{r}
+t.test(df_sa2$State.anxiety ~ df_sa2$Context, var.equal = FALSE)
+cohen.d(df_sa2$State.anxiety, df_sa2$Context, pooled=TRUE, paired=FALSE)
+```
+
+Plot histograms of trait and state anxiety split by study context
+```{r, fig.height = 4, fig.width = 4}
+mu_mode <- ddply(df_sa2, c("Context"), summarise, grp.mode=estimate_mode(Trait.anxiety))
+mu_qtile <- ddply(df_sa2, c("Context"), summarise, grp.qtile=quantile(Trait.anxiety, probs = 0.80))
+ta <- ggplot(df_sa2, aes(x=Trait.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.4, binwidth = 1) +
+  geom_density(alpha=0.2) +
+  geom_vline(data=mu_mode, aes(xintercept=grp.mode, color=Context), linetype="solid", size=1.2) +
+  geom_vline(data=mu_qtile, aes(xintercept=grp.qtile, color=Context), linetype="dashed", size=1.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  labs(x="Trait anxiety", y="density", color="Study context", fill="Study context") +
+  theme_classic()
+
+mu_mode <- ddply(df_sa2, c("Context"), summarise, grp.mode=estimate_mode(State.anxiety))
+mu_qtile <- ddply(df_sa2, c("Context"), summarise, grp.qtile=quantile(State.anxiety, probs = 0.80))
+sa <- ggplot(df_sa2, aes(x=State.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.4, binwidth = 1) +
+  geom_density(alpha=0.2) +
+  geom_vline(data=mu_mode, aes(xintercept=grp.mode, color=Context), linetype="solid", size=1.2) +
+  geom_vline(data=mu_qtile, aes(xintercept=grp.qtile, color=Context), linetype="dashed", size=1.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  labs(x="State anxiety", y="density", color="Study context", fill="Study context") +
+  theme_classic()
+
+grid.arrange(ta, sa, nrow=2)
+```
+
+
+Plot histograms of trait and state anxiety per study context and per site
+```{r, fig.height = 4, fig.width = 10}
+muu <- ddply(df_sa2, c("Context","Site"), summarise, grp.mean=mean(Trait.anxiety))
+muu_mode <- ddply(df_sa2, c("Context","Site"), summarise, grp.mode=estimate_mode(Trait.anxiety))
+muu_qtile <- ddply(df_sa2, c("Context","Site"), summarise, grp.qtile=quantile(Trait.anxiety, probs = 0.80))
+p1 <- ggplot(df_sa2, aes(x=Trait.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.3, binwidth = 2) +
+  geom_density(alpha=0.2) +
+  geom_vline(data=muu_mode, aes(xintercept=grp.mode, color=Context), linetype="solid", size=1.2) +
+  geom_vline(data=muu_qtile, aes(xintercept=grp.qtile, color=Context), linetype="dashed", size=1.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  theme_classic() + facet_wrap(~ Site, nrow=1) + labs(x="Trait anxiety")
+
+muu <- ddply(df_sa2, c("Context","Site"), summarise, grp.mean=mean(State.anxiety))
+muu_mode <- ddply(df_sa2, c("Context","Site"), summarise, grp.mode=estimate_mode(State.anxiety))
+muu_qtile <- ddply(df_sa2, c("Context","Site"), summarise, grp.qtile=quantile(State.anxiety, probs = 0.80))
+p2 <- ggplot(df_sa2, aes(x=State.anxiety, color=Context, fill=Context)) +
+  geom_histogram(aes(y=..density..), position="identity", alpha=0.3, binwidth = 2) +
+  geom_density(alpha=0.2) +
+  geom_vline(data=muu_mode, aes(xintercept=grp.mode, color=Context), linetype="solid", size=1.2) +
+  geom_vline(data=muu_qtile, aes(xintercept=grp.qtile, color=Context), linetype="dashed", size=1.2) +
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  theme_classic() + facet_wrap(~ Site, nrow=1) + labs(x="State anxiety")
+
+grid.arrange(p1, p2, nrow=2)
+```
+
+Scatter plot of trait anxiety as a function of state anxiety + regression line
+```{r, fig.height=4, fig.width=5.5}
+ggplot(df_sa2, aes(x=State.anxiety, y=Trait.anxiety, color=Context, fill=Context)) + 
+  geom_point(shape=16, alpha=0.3) + geom_smooth(method=lm, colour="black", fill="black") +  
+  scale_color_brewer(palette="Dark2") +  scale_fill_brewer(palette="Dark2") +
+  theme_classic() + labs(x="State anxiety", y="Trait anxiety", color="Study context", fill="Study context")
+```
+
+
+Mixed effect models to examine the effect of study context on trait anxiety controlling for state anxiety
+```{r}
+m_ta_sa <- lmer(Trait.anxiety ~ Context + State.anxiety + (1 | Site), data = df_sa2, REML=FALSE, control = control_params)
+summary(m_ta_sa)
+```
+
+Same model without the main effect of context to assess significance
+```{r}
+m_ta_sa_nocon <- lmer(Trait.anxiety ~ State.anxiety + (1 | Site), data = df_sa2, REML=FALSE, control = control_params)
+anova(m_ta_sa, m_ta_sa_nocon)
+```
+
+Marginal means and effect size
+```{r}
+EM_ta_sa_cond <- emmeans(m_ta_sa, c("Context"), pbkrtest.limit = 2324)
+es_ta_sa_cond <- eff_size(EM_ta_sa_cond, sigma = sigma(m_ta_sa), edf = 2324)
+summary(es_ta_sa_cond)
+```
+
+Plot main effect of context on trait anxiety, controlling for state anxiety
+```{r, fig.height=3, fig.width=2}
+TA_sa_cond <- summary(EM_ta_sa_cond)$emmean
+
+emms <- data.frame("Context" = c("behaviour","fMRI"), "Trait.anxiety" = TA_sa_cond)
+ggplot(df_sa2, aes(x=Context, y=Trait.anxiety, fill=Context)) +
+  geom_boxplot(notch=TRUE, alpha=0.6, colour="black", lwd=0.7) +
+  scale_fill_manual(values = colsdark2[1:2]) +
+  geom_point(data = emms, color="darkblue", shape=16, size=2, show.legend = FALSE, alpha=1) + 
+  geom_text(data = emms, aes(label = round(Trait.anxiety,2), y = 20), size=3, show.legend=FALSE, color="darkblue", alpha=1) +
+  theme_classic() + labs(x="Study context", y="Trait anxiety") + guides(fill=FALSE)
+```
+
